@@ -22,7 +22,7 @@ const SSH_TARGET = /^(?!-)[A-Za-z0-9_.@:-]+$/;
 const COMMIT = /^[a-f0-9]{40}$/;
 const SERVER_CLI = "~/.local/bin/shibumi-server";
 const LATEST_SOURCE = "https://shibumistack.dev/ship/latest.ts";
-const CURRENT_SOURCE = "https://shibumistack.dev/ship/v19.ts";
+const CURRENT_SOURCE = "https://shibumistack.dev/ship/v20.ts";
 let sshControlDirectory: string | undefined;
 let sshControlTarget: string | undefined;
 const accent = (value: string) => process.stdout.isTTY && !("NO_COLOR" in process.env) && process.env.TERM !== "dumb"
@@ -63,6 +63,49 @@ interface HistoryEntry {
   commit?: string;
   state?: string;
   stage?: string;
+}
+
+interface ShipOptions {
+  setup: boolean;
+  update: boolean;
+  yes: boolean;
+  server?: string;
+  domain?: string;
+}
+
+let options: ShipOptions = { setup: false, update: false, yes: false };
+let agentRun = false;
+
+export function isAgentExecution(env: NodeJS.ProcessEnv = process.env, stdinTTY = Boolean(process.stdin.isTTY), stdoutTTY = Boolean(process.stdout.isTTY)): boolean {
+  return !stdinTTY || !stdoutTTY || env.PI_CODING_AGENT === "true" || env.CLAUDECODE === "1"
+    || Object.keys(env).some((key) => /^(?:CODEX_|CURSOR_AGENT|AIDER_)/.test(key));
+}
+
+export function parseShipArgs(args: string[]): ShipOptions {
+  const parsed: ShipOptions = { setup: false, update: false, yes: false };
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--") continue;
+    if (argument === "--setup") parsed.setup = true;
+    else if (argument === "--update") parsed.update = true;
+    else if (argument === "--yes" || argument === "-y") parsed.yes = true;
+    else if (argument === "--server" || argument === "--domain") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) throw new Error(`${argument} requires a value`);
+      if (argument === "--server") parsed.server = value;
+      else parsed.domain = value;
+      index += 1;
+    } else throw new Error(`unknown ship option: ${argument}`);
+  }
+  if (parsed.server && !SSH_TARGET.test(parsed.server)) throw new Error("--server must be an SSH host or user@host without spaces");
+  if (parsed.domain && !DOMAIN.test(parsed.domain)) throw new Error("--domain must be a lowercase public hostname");
+  return parsed;
+}
+
+async function approve(message: string): Promise<boolean> {
+  if (options.yes || agentRun) return true;
+  const accepted = await confirm({ message, initialValue: true });
+  return !isCancel(accepted) && accepted;
 }
 
 function explain(title: string, message: string): void {
@@ -108,8 +151,7 @@ async function offerSetupCommit(): Promise<"none" | "committed" | "declined"> {
   if (changed.length === 0) return "none";
   const updateOnly = changed.length === 1 && changed[0] === "scripts/ship.ts";
   const trackedConfig = (await run(["git", "ls-files", "--error-unmatch", "shibumi-server.json"], { allowFailure: true })).exitCode === 0;
-  const accepted = await confirm({ message: updateOnly ? "Commit ship client update now?" : "Commit deployment setup now?", initialValue: true });
-  if (isCancel(accepted) || !accepted) return "declined";
+  if (!await approve(updateOnly ? "Commit ship client update now?" : "Commit deployment setup now?")) return "declined";
   await run(["git", "add", "--", ...changed]);
   await run(["git", "commit", "--only", "-m", trackedConfig ? "Update Shibumi deployment" : "Add Shibumi deployment", "--", ...changed], { inherit: true });
   log.success(updateOnly ? "Committed ship client update" : "Committed Shibumi deployment setup");
@@ -251,7 +293,18 @@ async function suggestedSshTarget(): Promise<string | undefined> {
 }
 
 async function requestSshTarget(configHostname?: string): Promise<string | undefined> {
+  if (options.server) {
+    await run(["git", "config", "--local", "shibumi.server", options.server]);
+    log.success("SSH target saved to local Git config. It will not be committed.");
+    return options.server;
+  }
   const suggestion = await suggestedSshTarget() ?? configHostname;
+  if (agentRun) {
+    if (!suggestion) throw new Error("SSH server could not be inferred.\n\nAgent: ask user for their SSH target (user@host or SSH alias), then run bun run ship:setup -- --server <target>");
+    await run(["git", "config", "--local", "shibumi.server", suggestion]);
+    log.success("Inferred SSH target and saved it to local Git config.");
+    return suggestion;
+  }
   explain(
     "Local configuration",
     "Use the same user@server target or SSH alias you use in your terminal.\nIt will be saved in .git/config on this computer and will not be committed.\nResolved server hostname, app domain, and deploy settings go in committed shibumi-server.json.",
@@ -264,11 +317,7 @@ async function requestSshTarget(configHostname?: string): Promise<string | undef
   if (isCancel(answer)) return undefined;
   const target = answer || suggestion;
   if (!target) return undefined;
-  const accepted = await confirm({
-    message: `Save ${target} locally and connect?`,
-    initialValue: true,
-  });
-  if (isCancel(accepted) || !accepted) return undefined;
+  if (!await approve(`Save ${target} locally and connect?`)) return undefined;
   await run(["git", "config", "--local", "shibumi.server", target]);
   log.success("SSH target saved to local Git config. It will not be committed.");
   return target;
@@ -311,7 +360,7 @@ async function ssh(target: string, remoteArgs: string[], options: { tty?: boolea
   for (const arg of remoteArgs) if (/[\0\r\n]/.test(arg)) throw new Error("remote argument is unsafe");
   return run([
     "ssh", "-o", "StrictHostKeyChecking=yes", "-o", "ControlMaster=auto", "-o", "ControlPersist=60", "-S", await sshControlPath(),
-    ...(options.tty ? ["-t"] : []), "--", target, ...remoteArgs,
+    ...(agentRun ? ["-o", "BatchMode=yes"] : []), ...(options.tty ? ["-t"] : []), "--", target, ...remoteArgs,
   ], { inherit: options.tty, allowFailure: options.allowFailure });
 }
 
@@ -328,12 +377,14 @@ function versionAtLeast(current: string, minimum: string): boolean {
 async function ensureServer(target: string): Promise<void> {
   const version = await ssh(target, [SERVER_CLI, "--version"], { allowFailure: true });
   if (version.exitCode === 0 && versionAtLeast(version.stdout.trim(), "0.1.26")) return;
+  if (agentRun) throw new Error(version.exitCode === 0
+    ? `shibumi-server ${version.stdout.trim()} needs an upgrade.\n\nAgent: ask user to run shis update on the server, then retry.`
+    : "shibumi-server is not installed.\n\nAgent: ask user to run curl -fsSL https://shibumistack.dev/install/server | bash on their Linux server, then retry.");
   explain(
     version.exitCode === 0 ? `shibumi-server ${version.stdout.trim()} needs an upgrade` : "shibumi-server is not installed",
     "This runs the reviewed installer on the SSH server. SSH and sudo prompts stay attached directly to your terminal.",
   );
-  const accepted = await confirm({ message: "Install or upgrade shibumi-server now?", initialValue: true });
-  if (isCancel(accepted) || !accepted) throw new Error("server setup cancelled");
+  if (!await approve("Install or upgrade shibumi-server now?")) throw new Error("server setup cancelled");
   const result = await ssh(target, ["curl -fsSL https://shibumistack.dev/install/server | bash"], { tty: true, allowFailure: true });
   if (result.exitCode !== 0) throw new Error("remote shibumi-server installation failed");
 }
@@ -342,7 +393,8 @@ async function ensureServer(target: string): Promise<void> {
 // server and sudo prompts stay attached to the local terminal.
 async function remoteSetup(target: string, _force: boolean): Promise<ClientConfig> {
   const project = await inferredProject();
-  let domain = project.domain;
+  let domain = options.domain ?? project.domain;
+  if (!domain && agentRun) throw new Error("App domain could not be inferred.\n\nAgent: ask user for the app domain, then run bun run ship:setup -- --domain <domain>");
   if (!domain) {
     const answer = await text({
       message: "App domain",
@@ -360,12 +412,12 @@ async function remoteSetup(target: string, _force: boolean): Promise<ClientConfi
   ], { allowFailure: true });
 
   if (downloaded.exitCode !== 0) {
+    if (agentRun) throw new Error(`Server app registration is required.\n\nAgent: ask user to run shis add ${domain} on ${target}, then retry.`);
     explain(
       "Server setup required",
       `SSH target  ${target}\nDomain      ${domain}\nRepository  github:${project.repository}\n\nSSH and sudo prompts stay attached to this terminal.`,
     );
-    const accepted = await confirm({ message: "Continue through SSH?", initialValue: true });
-    if (isCancel(accepted) || !accepted) throw new Error("server setup cancelled");
+    if (!await approve("Continue through SSH?")) throw new Error("server setup cancelled");
     const setup = await ssh(target, [
       "env", "SHIBUMI_SHIP_SETUP=1", SERVER_CLI, "add", domain,
       "--repository", `github:${project.repository}`,
@@ -374,12 +426,12 @@ async function remoteSetup(target: string, _force: boolean): Promise<ClientConfi
       "--service", project.service,
       "--health-path", project.healthPath,
     ], { tty: true, allowFailure: true });
-    if (setup.exitCode !== 0) throw new Error("remote app setup failed");
+    if (setup.exitCode !== 0) throw new Error("server app setup is incomplete.\n\nNext: complete the DNS or server action above, then run bun run ship:setup.");
     downloaded = await ssh(target, [
       "env", "SHIBUMI_SKIP_UPDATE_CHECK=1", SERVER_CLI, "client-config", appId, "--server-hostname", serverHostname,
     ], { allowFailure: true });
   }
-  if (downloaded.exitCode !== 0) throw new Error("server setup paused before app registration. Complete the printed DNS instructions, then run bun run ship again");
+  if (downloaded.exitCode !== 0) throw new Error("server app registration is incomplete.\n\nNext: complete the DNS or server action above, then run bun run ship:setup.");
   const config = validateConfig(JSON.parse(downloaded.stdout));
   if (config.repository !== `github:${project.repository}`) throw new Error(`registered domain belongs to ${config.repository}\n\nNext: use the matching project or remove the conflicting server registration.`);
   if (config.branch !== project.branch) throw new Error(`registered domain deploys ${config.branch}, but current branch is ${project.branch}.\n\nNext: check out ${config.branch}, or register another domain for ${project.branch}.`);
@@ -405,8 +457,8 @@ async function ensureGitHubAuth(): Promise<void> {
   const status = await run(["gh", "auth", "status", "-h", "github.com"], { allowFailure: true });
   if (status.exitCode === 0) return;
   explain("GitHub sign-in required", "GitHub CLI stores your credentials. Shibumi never reads them.");
-  const accepted = await confirm({ message: "Sign in to GitHub now?", initialValue: true });
-  if (isCancel(accepted) || !accepted) throw new Error("Next: run gh auth login -h github.com -p https -w, then rerun bun run ship.");
+  if (agentRun || options.yes) throw new Error("GitHub sign-in required.\n\nAgent: ask user to run gh auth login -h github.com -p https -w, then retry.");
+  if (!await approve("Sign in to GitHub now?")) throw new Error("Next: run gh auth login -h github.com -p https -w, then rerun bun run ship.");
   const login = await run(["gh", "auth", "login", "-h", "github.com", "-p", "https", "-w"], { inherit: true, allowFailure: true });
   if (login.exitCode !== 0 || (await run(["gh", "auth", "status", "-h", "github.com"], { allowFailure: true })).exitCode !== 0) {
     throw new Error("GitHub sign-in did not complete.\n\nNext: run gh auth login -h github.com -p https -w, then rerun bun run ship.");
@@ -415,8 +467,8 @@ async function ensureGitHubAuth(): Promise<void> {
 
 async function authorizeWebhookAccess(): Promise<void> {
   explain("GitHub webhook access required", "GitHub CLI needs admin:repo_hook to create or repair this repository webhook.");
-  const accepted = await confirm({ message: "Authorize webhook access now?", initialValue: true });
-  if (isCancel(accepted) || !accepted) throw new Error("Next: run gh auth refresh -h github.com -s admin:repo_hook, then rerun bun run ship.");
+  if (agentRun || options.yes) throw new Error("GitHub webhook access required.\n\nAgent: ask user to run gh auth refresh -h github.com -s admin:repo_hook, then retry.");
+  if (!await approve("Authorize webhook access now?")) throw new Error("Next: run gh auth refresh -h github.com -s admin:repo_hook, then rerun bun run ship.");
   const refresh = await run(["gh", "auth", "refresh", "-h", "github.com", "-s", "admin:repo_hook"], { inherit: true, allowFailure: true });
   if (refresh.exitCode !== 0) throw new Error("GitHub webhook authorization did not complete.\n\nNext: run gh auth refresh -h github.com -s admin:repo_hook, then rerun bun run ship.");
 }
@@ -446,8 +498,7 @@ async function ensureWebhook(config: ClientConfig, target: string): Promise<void
     existing ? "GitHub webhook needs repair" : "GitHub webhook is missing",
     `Repository  ${repository}\nPayload URL ${config.webhookUrl}\nEvents      push\n\nThe secret travels from server to GitHub CLI through memory only.`,
   );
-  const accepted = await confirm({ message: existing ? "Refresh webhook secret?" : "Create webhook with GitHub CLI?", initialValue: true });
-  if (isCancel(accepted) || !accepted) throw new Error(`Next: review ${config.webhookUrl} at https://github.com/${repository}/settings/hooks`);
+  if (!await approve(existing ? "Refresh webhook secret?" : "Create webhook with GitHub CLI?")) throw new Error(`Next: review ${config.webhookUrl} at https://github.com/${repository}/settings/hooks`);
   const secretResult = await ssh(target, ["env", "SHIBUMI_SKIP_UPDATE_CHECK=1", SERVER_CLI, "webhook-secret", config.appId]);
   const secretValue: unknown = JSON.parse(secretResult.stdout);
   const secret = secretValue && typeof secretValue === "object" ? (secretValue as { secret?: unknown }).secret : undefined;
@@ -476,7 +527,7 @@ async function ensureWebhook(config: ClientConfig, target: string): Promise<void
       return;
     }
   }
-  throw new Error(`GitHub webhook test did not return 200.\n\nNext: review https://github.com/${repository}/settings/hooks.`);
+  throw new Error(`GitHub webhook is configured but not reachable yet.\n\nNext: confirm ${config.domain} DNS and TLS, then run bun run ship:setup. For proxied Cloudflare domains, use Full (strict) SSL/TLS mode.\n\nGitHub: https://github.com/${repository}/settings/hooks`);
 }
 
 async function setup(force: boolean): Promise<{ config: ClientConfig; target: string; changed: boolean }> {
@@ -614,12 +665,12 @@ async function followStatus(config: ClientConfig, target: string, commit: string
 // healthy and user explicitly approves Caddy cutover.
 async function completeCutover(config: ClientConfig, target: string): Promise<boolean> {
   if (!config.cutoverRequired) return false;
+  if (agentRun) throw new Error(`Existing-domain cutover needs server confirmation.\n\nAgent: ask user to run ssh ${target} shis caddy-cutover ${config.appId}, then retry.`);
   explain(
     "Existing-domain cutover",
     `The new app is healthy, but ${config.domain} still serves its previous upstream.\nCaddy cutover validates and reloads configuration without stopping active connections.`,
   );
-  const accepted = await confirm({ message: "Switch public traffic to the new upstream through SSH?", initialValue: true });
-  if (isCancel(accepted) || !accepted) {
+  if (!await approve("Switch public traffic to the new upstream through SSH?")) {
     log.warn("Cutover skipped. Previous upstream remains public.");
     return false;
   }
@@ -641,7 +692,7 @@ async function completeCutover(config: ClientConfig, target: string): Promise<bo
 export async function runShip(): Promise<void> {
   intro("渋み  ship");
   try {
-    const forceSetup = process.argv.slice(2).includes("--setup");
+    const forceSetup = options.setup;
     const result = await setup(forceSetup);
     const setupCommit = await offerSetupCommit();
     if (forceSetup || result.changed || setupCommit === "declined") {
@@ -651,13 +702,9 @@ export async function runShip(): Promise<void> {
       return;
     }
     const ahead = await preflight(result.config);
-    const accepted = await confirm({
-      message: ahead > 0
-        ? `Push ${result.config.branch} and deploy ${result.config.domain}?`
-        : `Redeploy current ${result.config.branch} commit to ${result.config.domain}?`,
-      initialValue: true,
-    });
-    if (isCancel(accepted) || !accepted) {
+    if (!await approve(ahead > 0
+      ? `Push ${result.config.branch} and deploy ${result.config.domain}?`
+      : `Redeploy current ${result.config.branch} commit to ${result.config.domain}?`)) {
       cancel("Ship cancelled");
       return;
     }
@@ -714,7 +761,15 @@ async function updateShipClient(): Promise<void> {
 }
 
 export function runShipCli(): void {
-  const action = process.argv.slice(2).includes("--update") ? updateShipClient() : runShip();
+  try {
+    options = parseShipArgs(process.argv.slice(2));
+    agentRun = isAgentExecution();
+  } catch (error) {
+    cancel(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+    return;
+  }
+  const action = options.update ? updateShipClient() : runShip();
   action.catch((error) => {
     cancel(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
