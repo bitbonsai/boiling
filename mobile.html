@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17130f">
+  <title>Boiling the ocean · Desktop only</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    @font-face{font-family:Roobert;src:url(fonts/RoobertPRO-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
+    @font-face{font-family:Roobert;src:url(fonts/RoobertPRO-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
+    @font-face{font-family:Roobert;src:url(fonts/RoobertPRO-Bold.woff2) format('woff2');font-weight:700;font-display:swap}
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family:Roobert,system-ui,sans-serif;
+      background:radial-gradient(120% 90% at 50% 0%,#261f1a 0%,#17130f 70%);
+      color:#f0eee6;
+      display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+      text-align:center;
+      min-height:100dvh;
+      padding:calc(env(safe-area-inset-top) + 2rem) 2rem calc(env(safe-area-inset-bottom) + 2.5rem);
+      -webkit-font-smoothing:antialiased;
+    }
+    .logo{width:clamp(64px,18vw,96px);height:auto;color:#d97757}
+    main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;max-width:26rem}
+    .logo{margin-bottom:1.4rem}
+    .kicker{
+      font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;
+      color:#e7a78e;font-weight:600;
+    }
+    h1{font-size:clamp(1.9rem,8vw,2.6rem);font-weight:700;line-height:1.12;letter-spacing:-.01em}
+    h1 em{font-style:normal;color:#d97757}
+    p{font-size:1rem;line-height:1.55;color:rgba(240,238,230,.62);max-width:22rem}
+    .bottom{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:22rem;margin-bottom:14dvh}
+    button{
+      font-family:inherit;font-size:1.05rem;font-weight:600;
+      width:100%;padding:1rem 1.5rem;border:0;border-radius:999px;
+      background:#d97757;color:#17130f;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:.6rem;
+      transition:transform .15s ease,background .2s ease;
+    }
+    button:active{transform:scale(.97)}
+    button svg{width:1.1em;height:1.1em}
+    .hint{font-size:.8rem;color:rgba(240,238,230,.35)}
+  </style>
+</head>
+<body>
+  <main>
+    <svg class="logo" role="img" aria-label="Mauricio Wolff" width="121" height="80" viewBox="0 0 121 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M40.4999 0.26416L80.1179 79.5002H0.881836L40.4999 0.26416ZM4.1179 77.5002H76.8818L40.4999 4.7363L4.1179 77.5002Z" fill="currentColor" fill-opacity="0.81"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M60.618 0.26416L100.236 79.5002H21L60.618 0.26416ZM24.2361 77.5002H97L60.618 4.7363L24.2361 77.5002Z" fill="currentColor" fill-opacity="0.81"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M80.7362 0.26416L120.354 79.5002H41.1182L80.7362 0.26416ZM44.3542 77.5002H117.118L80.7362 4.7363L44.3542 77.5002Z" fill="currentColor" fill-opacity="0.81"/>
+    </svg>
+    <div class="kicker">Boiling the ocean</div>
+    <h1>This presentation is <em>desktop only</em></h1>
+    <p>Share the link to a bigger screen.</p>
+  </main>
+
+  <div class="bottom">
+    <button id="share" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+      Share with your desktop
+    </button>
+    <div class="hint" id="hint">boiling.mauriciowolff.com</div>
+  </div>
+
+  <script>
+    const url = 'https://boiling.mauriciowolff.com';
+    const hint = document.getElementById('hint');
+    document.getElementById('share').addEventListener('click', async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'Boiling the ocean', text: 'Open on desktop:', url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          hint.textContent = 'Link copied';
+        }
+      } catch {}
+    });
+  </script>
+</body>
+</html>
