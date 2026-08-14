@@ -11,7 +11,7 @@ If you couldn't make it to the talk, this is the whole thing in my own words. Gr
 
 This is the story of how I used Claude Code to build a platform that looked far too large for one person.
 
-I'm Mauricio Wolff, a Staff Designer at Miro. I build things. Claude Code multiplied that experience into something one person doesn't usually ship: a whole platform.
+I'm Mauricio Wolff, a Staff Designer at Miro. I build things. Here I want to tell you how Claude Code multiplied my experience into something one person doesn't usually ship: a whole platform.
 
 If you've used AI tools to build beyond your own role, this story is for you.
 

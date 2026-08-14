@@ -5,7 +5,7 @@ Source: `deck.js`, `n:` field per slide. Edit here, then sync back.
 | # | Slide | Caption |
 |---|-------|---------|
 | 1 | Cover | This is the story of how I used Claude Code to build a platform that looked far too large for one person. |
-| 2 | I'm Mauricio | I'm Mauricio Wolff, a Staff Designer at Miro. I build things. Claude Code multiplied that experience into something one person doesn't usually ship: a whole platform. |
+| 2 | I'm Mauricio | I'm Mauricio Wolff, a Staff Designer at Miro. I build things. Here I want to tell you how Claude Code multiplied my experience into something one person doesn't usually ship: a whole platform. |
 | 3 | Who are you? | If you've used AI tools to build beyond your own role, this story is for you. |
 | 4 | Dictionary: boil the ocean | "Boiling the ocean" is usually a useful warning that a project is too large to attempt. This talk explores what happened when I ignored it, and which practices kept ambition from turning into chaos. |
 | 5 | Chapter one: The story | To explain what this means, I'll tell you a story about what happened at Miro. |

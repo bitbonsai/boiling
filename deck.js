@@ -25,7 +25,7 @@ const platformIcons={
 };
 const slides = [
   {c:'ocean cover',o:'surface',h:`${claude}<div class="kicker step">Claude Community Amsterdam</div><h1 class="title step" style="--delay:.08s">Boiling<br>the ocean</h1><p class="subtitle step" style="--delay:.16s">How to build platforms and do what seems impossible with Claude Code</p><div class="byline step" style="--delay:.24s"><img src="assets/avatar-mw.jpg" alt="Mauricio Wolff"><div><strong>Mauricio Wolff</strong><small>12 August 2026</small></div></div>`,n:'This is the story of how I used Claude Code to build a platform that looked far too large for one person.'},
-  {c:'paper',h:`<div class="two-col"><div><div class="kicker step">Hello</div><h2 class="statement small wide step" style="--delay:.08s">I’m Mauricio Wolff.</h2><p class="step" style="--delay:.16s;font-size:2rem;margin-top:1.5rem">Staff designer at Miro.<br><span class="muted">I build things.</span></p></div><img class="portrait step" style="--delay:.18s" src="assets/avatar-mw.jpg" alt="Mauricio Wolff"></div>`,n:'I’m Mauricio Wolff, a Staff Designer at Miro. I build things. Claude Code multiplied that experience into something one person doesn’t usually ship: a whole platform.'},
+  {c:'paper',h:`<div class="two-col"><div><div class="kicker step">Hello</div><h2 class="statement small wide step" style="--delay:.08s">I’m Mauricio Wolff.</h2><p class="step" style="--delay:.16s;font-size:2rem;margin-top:1.5rem">Staff designer at Miro.<br><span class="muted">I build things.</span></p></div><img class="portrait step" style="--delay:.18s" src="assets/avatar-mw.jpg" alt="Mauricio Wolff"></div>`,n:'I’m Mauricio Wolff, a Staff Designer at Miro. I build things. Here I want to tell you how Claude Code multiplied my experience into something one person doesn’t usually ship: a whole platform.'},
   {c:'paper center',h:`<div class="kicker step">Quick show of hands</div><h2 class="statement small wide step" style="--delay:.05s">Who are you?</h2><div class="roles"><div class="role step" style="--delay:.12s"><div class="role-icon">${hand}</div><strong>Designer?</strong></div><div class="role step" style="--delay:.2s"><div class="role-icon">${hand}</div><strong>PM?</strong></div><div class="role step" style="--delay:.28s"><div class="role-icon">${hand}</div><strong>Engineer?</strong></div></div><p class="hand-question step" style="--delay:.36s">${hand}<span>Who has built with AI?</span></p>`,n:'If you’ve used AI tools to build beyond your own role, this story is for you.'},
   {c:'paper center',h:`<div class="dictionary step"><div class="dictionary-head"><strong>Boil the ocean</strong><span>idiom</span></div><div class="pronunciation">/bɔɪl ði ˈoʊʃən/</div><div class="definition">To undertake a project whose scope is so vast that completing it would be <em>impractical</em>, regardless of available people or resources.</div></div>`,n:'“Boiling the ocean” is usually a useful warning that a project is too large to attempt. This talk explores what happened when I ignored it, and which practices kept ambition from turning into chaos.'},
   {c:'dark center',h:`<div class="section-num step">Chapter one</div><div class="section-title step" style="--delay:.08s;font-size:clamp(6rem,15vw,12.5rem);letter-spacing:-.025em">The story</div>`,n:'To explain what this means, I’ll tell you a story about what happened at Miro.'},
@@ -95,7 +95,7 @@ const captionBox=document.getElementById('captions');
 const captionText=captionBox.querySelector('span');
 const toggle=document.getElementById('captions-toggle');
 const number=document.getElementById('slide-number');
-let captionsVisible=localStorage.getItem('boil-captions')!=='off';
+let captionsVisible=true;
 captionBox.classList.toggle('hidden',!captionsVisible);
 toggle.setAttribute('aria-pressed',String(captionsVisible));
 
@@ -161,7 +161,6 @@ function toggleCaptions(){
   captionsVisible=!captionsVisible;
   captionBox.classList.toggle('hidden',!captionsVisible);
   toggle.setAttribute('aria-pressed',String(captionsVisible));
-  localStorage.setItem('boil-captions',captionsVisible?'on':'off');
 }
 toggle.addEventListener('click',toggleCaptions);
 document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='c'&&!/input|textarea/i.test(e.target.tagName)){e.preventDefault();e.stopImmediatePropagation();toggleCaptions()}},true);
