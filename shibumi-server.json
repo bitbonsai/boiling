@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "provider": "shibumi-server",
+  "server": {
+    "hostname": "alpha"
+  },
+  "domain": "boiling.mauriciowolff.com",
+  "appId": "boiling-mauriciowolff-com",
+  "repository": "github:bitbonsai/boiling",
+  "branch": "main",
+  "webhookUrl": "https://boiling.mauriciowolff.com/hooks/github/boiling-mauriciowolff-com",
+  "service": "web",
+  "healthPath": "/healthz",
+  "cutoverRequired": false
+}
