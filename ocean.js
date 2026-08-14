@@ -7,7 +7,6 @@
   let target = -1;
   let raftT = -1;
   let current = 0;
-  let sceneInitialized = false;
   let running = false;
   const started = performance.now();
 
@@ -16,14 +15,20 @@
     if (next === scenes.raft && target !== scenes.raft) raftT = (performance.now() - started) / 1000;
     if (next !== scenes.raft) raftT = -1;
     target = next;
-    if (!sceneInitialized && target >= 0) {
-      current = target;
-      sceneInitialized = true;
+    const wasRunning = running;
+    running = target >= 0;
+    if (running && gl) {
+      if (!wasRunning) {
+        // Resuming from hidden: snap to the new scene and paint before reveal,
+        // so the stale frame from the last shown scene never flashes.
+        current = target;
+        draw(performance.now());
+      } else if (reduced) {
+        draw(performance.now());
+      }
     }
     canvas.classList.toggle('visible', target >= 0);
     vignette.classList.toggle('visible', target >= 0);
-    running = target >= 0;
-    if (running) requestAnimationFrame(draw);
   };
 
   if (!gl) {
