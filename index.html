@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#261f1a">
+  <title>Boiling the ocean · Mauricio Wolff</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+  <link rel="preload" href="fonts/RoobertPRO-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/RoobertPRO-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/RoobertPRO-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/reveal.css">
+  <link rel="stylesheet" href="style.css?v=103">
+</head>
+<body>
+  <canvas id="ocean" aria-hidden="true"></canvas>
+  <div id="ocean-vignette" aria-hidden="true"></div>
+  <div class="reveal"><div class="slides" id="slides"></div></div>
+  <div id="grain" aria-hidden="true"></div>
+  <div id="slide-number" aria-hidden="true"></div>
+  <button id="captions-toggle" type="button" title="Toggle captions (C)" aria-label="Toggle captions" aria-pressed="true">
+    <span>CC</span>
+  </button>
+  <div id="captions" role="status" aria-live="polite"><span></span></div>
+  <script src="vendor/reveal.js"></script>
+  <script src="ocean.js?v=19"></script>
+  <script src="deck.js?v=134"></script>
+</body>
+</html>
