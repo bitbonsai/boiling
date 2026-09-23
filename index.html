@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#261f1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Boiling the ocean · Mauricio Wolff</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
@@ -11,7 +14,7 @@
   <link rel="preload" href="fonts/RoobertPRO-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/RoobertPRO-Bold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/reveal.css">
-  <link rel="stylesheet" href="style.css?v=113">
+  <link rel="stylesheet" href="style.css?v=114">
 </head>
 <body>
   <canvas id="ocean" aria-hidden="true"></canvas>
@@ -21,6 +24,9 @@
   <div id="slide-number" aria-hidden="true"></div>
   <button id="captions-toggle" type="button" title="Toggle captions (C)" aria-label="Toggle captions" aria-pressed="true">
     <span>CC</span>
+  </button>
+  <button id="fullscreen-toggle" type="button" title="Full screen (F)" aria-label="Toggle full screen" aria-pressed="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
   </button>
   <div id="captions" role="status" aria-live="polite"><span></span></div>
   <dialog id="rotate-dialog" aria-labelledby="rotate-title">
@@ -32,6 +38,6 @@
   </dialog>
   <script src="vendor/reveal.js"></script>
   <script src="ocean.js?v=23"></script>
-  <script src="deck.js?v=139"></script>
+  <script src="deck.js?v=140"></script>
 </body>
 </html>

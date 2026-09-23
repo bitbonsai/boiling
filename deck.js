@@ -171,7 +171,21 @@ function toggleCaptions(){
   toggle.setAttribute('aria-pressed',String(captionsVisible));
 }
 toggle.addEventListener('click',toggleCaptions);
-document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='c'&&!/input|textarea/i.test(e.target.tagName)){e.preventDefault();e.stopImmediatePropagation();toggleCaptions()}},true);
+const fullscreenToggle=document.getElementById('fullscreen-toggle');
+const fullscreenElement=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function toggleFullscreen(){
+  const root=document.documentElement;
+  const request=fullscreenElement()
+    ? (document.exitFullscreen||document.webkitExitFullscreen).call(document)
+    : (root.requestFullscreen||root.webkitRequestFullscreen).call(root);
+  request?.catch?.(()=>{});
+}
+if(!document.documentElement.requestFullscreen&&!document.documentElement.webkitRequestFullscreen)fullscreenToggle.style.display='none';
+fullscreenToggle.addEventListener('click',toggleFullscreen);
+const syncFullscreen=()=>fullscreenToggle.setAttribute('aria-pressed',String(Boolean(fullscreenElement())));
+document.addEventListener('fullscreenchange',syncFullscreen);
+document.addEventListener('webkitfullscreenchange',syncFullscreen);
+document.addEventListener('keydown',e=>{if(/input|textarea/i.test(e.target.tagName))return;const key=e.key?.toLowerCase();if(key!=='c'&&key!=='f')return;e.preventDefault();e.stopImmediatePropagation();key==='c'?toggleCaptions():toggleFullscreen()},true);
 const demoVideo=document.querySelector('.demo-video');
 const demoBadge=document.querySelector('.demo-badge');
 demoVideo?.addEventListener('ended',()=>demoBadge?.classList.add('show'));
