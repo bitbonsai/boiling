@@ -1,0 +1,14 @@
+{
+  "name": "Boiling the ocean",
+  "short_name": "Boiling",
+  "description": "How to build platforms and do what seems impossible with Claude Code",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "background_color": "#17130f",
+  "theme_color": "#261f1a",
+  "icons": [
+    { "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/favicon.ico", "sizes": "any", "type": "image/x-icon", "purpose": "any" }
+  ]
+}

@@ -180,7 +180,9 @@ function toggleFullscreen(){
     : (root.requestFullscreen||root.webkitRequestFullscreen).call(root);
   request?.catch?.(()=>{});
 }
-if(!document.documentElement.requestFullscreen&&!document.documentElement.webkitRequestFullscreen)fullscreenToggle.style.display='none';
+const standalone=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const fullscreenSupported=Boolean(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
+if(standalone||!fullscreenSupported)fullscreenToggle.style.display='none';
 fullscreenToggle.addEventListener('click',toggleFullscreen);
 let fullscreenUsed=false;
 const syncFullscreen=()=>{const active=Boolean(fullscreenElement());if(active)fullscreenUsed=true;fullscreenToggle.setAttribute('aria-pressed',String(active))};
@@ -189,7 +191,7 @@ document.addEventListener('webkitfullscreenchange',syncFullscreen);
 // Rotation cannot call requestFullscreen (no user gesture), so re-enter on the
 // first tap after the phone lands in landscape. Opts out once the visitor has
 // left full screen on purpose.
-const autoFullscreenWanted=()=>!fullscreenUsed&&!fullscreenElement()&&innerWidth>=innerHeight&&Math.min(innerWidth,innerHeight)<768;
+const autoFullscreenWanted=()=>!standalone&&!fullscreenUsed&&!fullscreenElement()&&innerWidth>=innerHeight&&Math.min(innerWidth,innerHeight)<768;
 function autoFullscreen(){if(autoFullscreenWanted())toggleFullscreen()}
 addEventListener('orientationchange',()=>setTimeout(autoFullscreen,200));
 addEventListener('pointerup',function arm(){if(!autoFullscreenWanted())return;removeEventListener('pointerup',arm);toggleFullscreen()});
