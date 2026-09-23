@@ -182,9 +182,17 @@ function toggleFullscreen(){
 }
 if(!document.documentElement.requestFullscreen&&!document.documentElement.webkitRequestFullscreen)fullscreenToggle.style.display='none';
 fullscreenToggle.addEventListener('click',toggleFullscreen);
-const syncFullscreen=()=>fullscreenToggle.setAttribute('aria-pressed',String(Boolean(fullscreenElement())));
+let fullscreenUsed=false;
+const syncFullscreen=()=>{const active=Boolean(fullscreenElement());if(active)fullscreenUsed=true;fullscreenToggle.setAttribute('aria-pressed',String(active))};
 document.addEventListener('fullscreenchange',syncFullscreen);
 document.addEventListener('webkitfullscreenchange',syncFullscreen);
+// Rotation cannot call requestFullscreen (no user gesture), so re-enter on the
+// first tap after the phone lands in landscape. Opts out once the visitor has
+// left full screen on purpose.
+const autoFullscreenWanted=()=>!fullscreenUsed&&!fullscreenElement()&&innerWidth>=innerHeight&&Math.min(innerWidth,innerHeight)<768;
+function autoFullscreen(){if(autoFullscreenWanted())toggleFullscreen()}
+addEventListener('orientationchange',()=>setTimeout(autoFullscreen,200));
+addEventListener('pointerup',function arm(){if(!autoFullscreenWanted())return;removeEventListener('pointerup',arm);toggleFullscreen()});
 document.addEventListener('keydown',e=>{if(/input|textarea/i.test(e.target.tagName))return;const key=e.key?.toLowerCase();if(key!=='c'&&key!=='f')return;e.preventDefault();e.stopImmediatePropagation();key==='c'?toggleCaptions():toggleFullscreen()},true);
 const demoVideo=document.querySelector('.demo-video');
 const demoBadge=document.querySelector('.demo-badge');
