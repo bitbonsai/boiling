@@ -96,6 +96,9 @@ const captionBox=document.getElementById('captions');
 const captionText=captionBox.querySelector('span');
 const toggle=document.getElementById('captions-toggle');
 const number=document.getElementById('slide-number');
+const rotateDialog=document.getElementById('rotate-dialog');
+if(innerWidth<768&&innerHeight>innerWidth)rotateDialog.showModal();
+addEventListener('resize',()=>{if(rotateDialog.open&&innerWidth>=innerHeight){rotateDialog.close();location.reload()}});
 let captionsVisible=true;
 captionBox.classList.toggle('hidden',!captionsVisible);
 toggle.setAttribute('aria-pressed',String(captionsVisible));
@@ -150,12 +153,16 @@ function activate(slide){
   const index=Number(slide?.dataset.caption||0);
   captionText.textContent=slides[index]?.n||'';
   number.textContent=`${index+1} / ${slides.length}`;
-  setOceanScene(slide?.dataset.ocean||null);
   document.querySelector('meta[name="theme-color"]').content=slide?.classList.contains('paper')?'#f0eee6':'#261f1a';
   if(slide){
-    const bg=getComputedStyle(slide).backgroundColor;
-    document.body.style.setProperty('background',bg==='rgba(0, 0, 0, 0)'?'var(--brown-deep)':bg,'important');
+    const slideBg=getComputedStyle(slide).backgroundColor;
+    const transparent=slideBg==='rgba(0, 0, 0, 0)';
+    const bg=transparent?'var(--brown-deep)':slideBg;
+    document.documentElement.style.setProperty('background',bg,'important');
+    document.body.style.setProperty('background',bg,'important');
+    slide.closest('.scroll-page')?.style.setProperty('background',transparent?'transparent':bg,'important');
   }
+  setOceanScene(slide?.dataset.ocean||null);
   requestAnimationFrame(()=>setTimeout(()=>{slide?.classList.add('run');startConfetti(slide)},90));
 }
 function toggleCaptions(){

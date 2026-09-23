@@ -1,7 +1,9 @@
 (() => {
   const canvas = document.getElementById('ocean');
   const vignette = document.getElementById('ocean-vignette');
-  const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+  const mobile = innerWidth < 768 || innerHeight < 500;
+  const fallback = 'linear-gradient(180deg,#584a40 0%,#31545d 42%,#0d313d 100%)';
+  const gl = mobile ? null : canvas.getContext('webgl', { antialias: false, alpha: false });
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const scenes = { surface: 0, deep: 1, current: 2, tangle: 3, raft: 4, sail: 5 };
   let target = -1;
@@ -32,7 +34,18 @@
   };
 
   if (!gl) {
-    canvas.style.background = 'linear-gradient(180deg,#584a40 0%,#31545d 42%,#0d313d 100%)';
+    canvas.style.background = fallback;
+    const context = canvas.getContext('2d');
+    const gradient = context?.createLinearGradient(0, 0, 0, 100);
+    if (context && gradient) {
+      canvas.width = 1;
+      canvas.height = 100;
+      gradient.addColorStop(0, '#584a40');
+      gradient.addColorStop(.42, '#31545d');
+      gradient.addColorStop(1, '#0d313d');
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 1, 100);
+    }
     return;
   }
 
