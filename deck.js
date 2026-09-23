@@ -174,13 +174,17 @@ toggle.addEventListener('click',toggleCaptions);
 const fullscreenToggle=document.getElementById('fullscreen-toggle');
 const fullscreenElement=()=>document.fullscreenElement||document.webkitFullscreenElement;
 function toggleFullscreen(){
+  if(!fullscreenSupported)return;
   const root=document.documentElement;
   const request=fullscreenElement()
     ? (document.exitFullscreen||document.webkitExitFullscreen).call(document)
     : (root.requestFullscreen||root.webkitRequestFullscreen).call(root);
   request?.catch?.(()=>{});
 }
-const standalone=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+// Installed-app detection only. (display-mode: fullscreen) is deliberately
+// excluded: it also matches a normal tab that entered full screen via the API,
+// which would hide the exit button after a reload.
+const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: minimal-ui)').matches;
 const fullscreenSupported=Boolean(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 if(standalone||!fullscreenSupported)fullscreenToggle.style.display='none';
 fullscreenToggle.addEventListener('click',toggleFullscreen);
@@ -191,7 +195,7 @@ document.addEventListener('webkitfullscreenchange',syncFullscreen);
 // Rotation cannot call requestFullscreen (no user gesture), so re-enter on the
 // first tap after the phone lands in landscape. Opts out once the visitor has
 // left full screen on purpose.
-const autoFullscreenWanted=()=>!standalone&&!fullscreenUsed&&!fullscreenElement()&&innerWidth>=innerHeight&&Math.min(innerWidth,innerHeight)<768;
+const autoFullscreenWanted=()=>fullscreenSupported&&!standalone&&!fullscreenUsed&&!fullscreenElement()&&innerWidth>=innerHeight&&Math.min(innerWidth,innerHeight)<768;
 function autoFullscreen(){if(autoFullscreenWanted())toggleFullscreen()}
 addEventListener('orientationchange',()=>setTimeout(autoFullscreen,200));
 addEventListener('pointerup',function arm(){if(!autoFullscreenWanted())return;removeEventListener('pointerup',arm);toggleFullscreen()});
